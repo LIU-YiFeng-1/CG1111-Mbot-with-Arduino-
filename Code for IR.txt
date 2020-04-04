@@ -1,0 +1,131 @@
+Code:
+
+#include <MeMCore.h>
+
+#include <PID_v1.h>
+
+#include <Wire.h>
+
+#include <SoftwareSerial.h>
+
+
+
+//Setup the motors'speed
+
+//By default, mbot goes straight forward
+
+uint8_t Speed_Left = 150;
+
+uint8_t Speed_Right = 150;
+
+
+
+//Setup the motors
+
+//In this way, if the mbot go straight forward, motorleft.run(-MOTORSPEED) and //motorright.run(MOTORSPEED)
+
+MeDCMotor motorleft(M1);
+
+MeDCMotor motorright(M2);
+
+
+
+//define the PID variables
+
+double Input_Left, Output_Left, Setpoint_Left;
+
+double Input_Right, Output_Right, Setpoint_Right;
+
+
+
+//Setup the infrared proximity sensors and PID
+
+#define IRleft A0 //since the rj25 adapter is connected to MCore Pin3
+
+#define IRright A1 //since the rj25 adapter is connected to MCore Pin3
+
+
+
+PID leftPID(&Input_Left, &Output_Left, &Setpoint_Left, 0.5, 0, 0, DIRECT);
+
+PID rightPID(&Input_Right, &Output_Right, &Setpoint_Right, 0.5, 0, 0, DIRECT);
+
+
+
+void setup() {
+
+// put your setup code here, to run once:
+
+Serial.begin(9600);
+
+//calibrate the PID by measuring the initial value
+
+double left_sum = 0;
+
+double right_sum = 0;
+
+for (long i = 0; i < 10; i ++) {
+
+left_sum += analogRead (IRleft);
+
+right_sum += analogRead (IRright);
+
+delay(100);
+
+}
+
+Setpoint_Left = left_sum/10;
+
+Setpoint_Right = right_sum/10;
+
+//turn the PID on
+
+leftPID.SetMode(AUTOMATIC);
+
+rightPID.SetMode(AUTOMATIC);
+
+}
+
+
+
+void loop() {
+
+//run the PID
+
+Input_Left = analogRead (IRleft);
+
+Input_Right = analogRead (IRright);
+
+leftPID.Compute();
+
+rightPID.Compute();
+
+
+
+Serial.print(Input_Left);
+
+Serial.print(",");
+
+Serial.println(Input_Right);
+
+
+
+Speed_Left = (Output_Left/1.2) + 150;
+
+Speed_Right = (Output_Right/1.2) + 150;
+
+
+
+Serial.print(Speed_Left);
+
+Serial.print(",");
+
+Serial.println(Speed_Right);
+
+
+
+motorleft.run(-Speed_Left);
+
+motorright.run(Speed_Right);
+
+}
